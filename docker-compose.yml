@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: smarteye
+      POSTGRES_USER: smarteye
+      POSTGRES_PASSWORD: smarteye
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
