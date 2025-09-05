@@ -1,0 +1,57 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: smarteye-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/se_db
+    username: se_user
+    password: se_pass
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      group-id: smarteye-consumers
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,env,configprops"
+  endpoint:
+    health:
+      show-details: when_authorized
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /v3/api-docs
+
+smarteye:
+  s3:
+    endpoint: http://localhost:9000
+    access-key: se_minio
+    secret-key: se_minio_pass
+    bucket: smarteye-pointclouds
+    region: us-east-1
+    path-style-access: true
