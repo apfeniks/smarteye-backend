@@ -1,0 +1,105 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0006-01-create-measurements
+      author: se
+      changes:
+        - createTable:
+            tableName: measurements
+            remarks: Измерения (сканирование техподдонов/тактов)
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_measurements
+              - column:
+                  name: tech_pallet_id
+                  type: BIGINT
+              - column:
+                  name: recipe_id
+                  type: BIGINT
+              - column:
+                  name: device_id
+                  type: BIGINT
+              - column:
+                  name: file_id
+                  type: BIGINT
+              - column:
+                  name: mode
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issue_code
+                  type: VARCHAR(64)
+              - column:
+                  name: mass_kg
+                  type: NUMERIC(12,3)
+              - column:
+                  name: summary_metrics
+                  type: TEXT
+              - column:
+                  name: started_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: finished_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: measurements
+            baseColumnNames: tech_pallet_id
+            referencedTableName: tech_pallets
+            referencedColumnNames: id
+            constraintName: fk_measurements_tech_pallet
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: measurements
+            baseColumnNames: recipe_id
+            referencedTableName: recipes
+            referencedColumnNames: id
+            constraintName: fk_measurements_recipe
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: measurements
+            baseColumnNames: device_id
+            referencedTableName: devices
+            referencedColumnNames: id
+            constraintName: fk_measurements_device
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: measurements
+            baseColumnNames: file_id
+            referencedTableName: files
+            referencedColumnNames: id
+            constraintName: fk_measurements_file
+            onDelete: SET NULL
+        - createIndex:
+            indexName: ix_measurements_status
+            tableName: measurements
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            indexName: ix_measurements_created_at
+            tableName: measurements
+            columns:
+              - column:
+                  name: created_at

@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0008-01-create-defects
+      author: se
+      changes:
+        - createTable:
+            tableName: defects
+            remarks: Дефекты/несоответствия по измерениям
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_defects
+              - column:
+                  name: measurement_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: code
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(512)
+              - column:
+                  name: data
+                  type: TEXT
+              - column:
+                  name: source
+                  type: VARCHAR(16)
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: defects
+            baseColumnNames: measurement_id
+            referencedTableName: measurements
+            referencedColumnNames: id
+            constraintName: fk_defects_measurement
+            onDelete: CASCADE
+        - createIndex:
+            indexName: ix_defects_measurement_id
+            tableName: defects
+            columns:
+              - column:
+                  name: measurement_id
+        - createIndex:
+            indexName: ix_defects_code
+            tableName: defects
+            columns:
+              - column:
+                  name: code

@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-01-create-users
+      author: se
+      changes:
+        - createTable:
+            tableName: users
+            remarks: Пользователи системы (логин/роль)
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_users
+              - column:
+                  name: username
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: ux_users_username
+              - column:
+                  name: password
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enabled
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false

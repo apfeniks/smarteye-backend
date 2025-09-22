@@ -1,47 +1,137 @@
 package org.smarteye.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import org.smarteye.backend.domain.Measurement;
-import org.smarteye.backend.domain.TechPallet;
+import org.smarteye.backend.common.audit.AuditLogger;
+import org.smarteye.backend.common.exception.NotFoundException;
+import org.smarteye.backend.common.util.TimeUtil;
+import org.smarteye.backend.domain.*;
+import org.smarteye.backend.domain.enums.MeasurementMode;
+import org.smarteye.backend.domain.enums.MeasurementStatus;
 import org.smarteye.backend.repository.MeasurementRepository;
-import org.smarteye.backend.repository.TechPalletRepository;
+import org.smarteye.backend.repository.WeightRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
-@Service @RequiredArgsConstructor
+/**
+ * Управление жизненным циклом измерений:
+ * start → (weights BEFORE/AFTER) → finish (+file/metrics) → operator decision (в другом сервисе).
+ */
+@Service
+@RequiredArgsConstructor
+@Transactional
 public class MeasurementService {
-    private final MeasurementRepository repo;
-    private final TechPalletRepository pallets;
 
-    @Transactional
-    public Measurement create(Long techPalletId, Integer profilesCount, String meta) {
-        var tp = pallets.findById(techPalletId).orElseThrow(() ->
-                new IllegalArgumentException("Tech pallet not found: " + techPalletId));
+    private final MeasurementRepository measurementRepository;
+    private final WeightRepository weightRepository;
+    private final AuditLogger audit;
 
-        var m = Measurement.builder()
-                .techPallet(tp)
-                .profilesCount(profilesCount)
-                .status("CREATED")
-                .meta(meta)
-                .createdAt(OffsetDateTime.now())
-                .build();
-        m = repo.save(m);
+    @Transactional(readOnly = true)
+    public Measurement getOrThrow(Long id) {
+        return measurementRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Measurement not found: id=" + id));
+    }
 
-        // не блокируем создание измерения, если что-то пойдёт не так при отправке события
-        try {
-            events.sendCreated(new MeasurementCreatedEvent(
-                    m.getId(), tp.getId(), m.getProfilesCount(), m.getStatus(), m.getCreatedAt()
-            ));
-        } catch (Exception ex) {
-            // можно залогировать WARN
-            System.err.println("WARN: failed to send Kafka event: " + ex.getMessage());
-        }
+    @Transactional(readOnly = true)
+    public List<Measurement> listByStatus(MeasurementStatus status) {
+        return measurementRepository.findAllByStatus(status);
+    }
+
+    /** Явный старт измерения внешним устройством/службой. */
+    public Measurement start(Measurement m, MeasurementMode mode) {
+        m.setMode(mode != null ? mode : MeasurementMode.AUTO);
+        m.setStatus(MeasurementStatus.CREATED);
+        m.setStartedAt(TimeUtil.nowUtc());
+        Measurement saved = measurementRepository.save(m);
+        audit.info("MEASUREMENT_CREATED", "measurement started", null, saved.getId());
+        return saved;
+    }
+
+    /** Упрощённый автостарт (без RFID возможен), если пришли веса без measurementId. */
+    public Measurement autoStart(TechPallet techPallet, Device device) {
+        Measurement m = new Measurement();
+        m.setTechPallet(techPallet);
+        m.setDevice(device);
+        m.setMode(MeasurementMode.AUTO);
+        m.setStatus(MeasurementStatus.IN_PROGRESS);
+        m.setStartedAt(TimeUtil.nowUtc());
+        Measurement saved = measurementRepository.save(m);
+        audit.info("MEASUREMENT_AUTOSTART", "auto start from weight", null, saved.getId());
+        return saved;
+    }
+
+    /** Завершение измерения — присвоение файла и метрик. */
+    public Measurement finish(Long id, FileRef file, String summaryMetrics) {
+        Measurement m = getOrThrow(id);
+        m.setFile(file);
+        m.setSummaryMetrics(summaryMetrics);
+        m.setStatus(MeasurementStatus.PENDING_REVIEW); // далее решает оператор/правила
+        m.setFinishedAt(TimeUtil.nowUtc());
+        audit.info("MEASUREMENT_FINISHED", "measurement finished (file attached)", null, m.getId());
         return m;
     }
 
+    /** Перевод в FINISHED (после принятия решения, если требуется). */
+    public Measurement markFinished(Long id) {
+        Measurement m = getOrThrow(id);
+        m.setStatus(MeasurementStatus.FINISHED);
+        audit.info("MEASUREMENT_STATUS", "status set to FINISHED", null, m.getId());
+        return m;
+    }
 
-    public List<Measurement> list() { return repo.findAll(); }
+    /** Перевод в REJECTED. */
+    public Measurement markRejected(Long id, String reason) {
+        Measurement m = getOrThrow(id);
+        m.setStatus(MeasurementStatus.REJECTED);
+        m.setIssueCode(reason);
+        audit.warn("MEASUREMENT_REJECTED", "measurement rejected by operator", null, m.getId());
+        return m;
+    }
+
+    /** Если доступны обе фазы веса — рассчитываем массу продукции. */
+    public void recomputeMassIfPossible(Long measurementId) {
+        var beforeOpt = weightRepository.findFirstByMeasurementIdAndPhase(measurementId, org.smarteye.backend.domain.enums.WeightPhase.BEFORE);
+        var afterOpt = weightRepository.findFirstByMeasurementIdAndPhase(measurementId, org.smarteye.backend.domain.enums.WeightPhase.AFTER);
+        if (beforeOpt.isPresent() && afterOpt.isPresent()) {
+            Measurement m = getOrThrow(measurementId);
+            BigDecimal mass = afterOpt.get().getValueKg().subtract(beforeOpt.get().getValueKg());
+            m.setMassKg(mass);
+            if (m.getStatus() == MeasurementStatus.CREATED) {
+                m.setStatus(MeasurementStatus.IN_PROGRESS);
+            }
+            audit.info("MEASUREMENT_MASS", "mass computed (kg)", null, m.getId());
+        }
+    }
+
+    /** Привязать файл к измерению (используется Recorder'ом). */
+    public Measurement attachFile(Long id, FileRef file) {
+        Measurement m = getOrThrow(id);
+        m.setFile(file);
+        return m;
+    }
+
+    /** Установить агрегированные метрики (JSON). */
+    public Measurement setSummaryMetrics(Long id, String json) {
+        Measurement m = getOrThrow(id);
+        m.setSummaryMetrics(json);
+        return m;
+    }
+
+    /** Пометить ошибку процесса. */
+    public Measurement markError(Long id, String issueCode) {
+        Measurement m = getOrThrow(id);
+        m.setStatus(MeasurementStatus.ERROR);
+        m.setIssueCode(issueCode);
+        audit.error("MEASUREMENT_ERROR", issueCode, null, m.getId());
+        return m;
+    }
+
+    // Вспомогательно
+    @Transactional(readOnly = true)
+    public Optional<Measurement> tryGet(Long id) {
+        return measurementRepository.findById(id);
+    }
 }

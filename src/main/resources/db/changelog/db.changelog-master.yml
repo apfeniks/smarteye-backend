@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - include: { file: db/changelog/0001-create-users.yaml }
+  - include: { file: db/changelog/0002-create-devices.yaml }
+  - include: { file: db/changelog/0003-create-recipes.yaml }
+  - include: { file: db/changelog/0004-create-tech-pallets.yaml }
+  - include: { file: db/changelog/0005-create-files.yaml }
+  - include: { file: db/changelog/0006-create-measurements.yaml }
+  - include: { file: db/changelog/0007-create-weights.yaml }
+  - include: { file: db/changelog/0008-create-defects.yaml }
+  - include: { file: db/changelog/0009-create-operator-actions.yaml }
+  - include: { file: db/changelog/0010-create-events.yaml }
+  # При желании можно добавить сиды (админ-пользователь и т.п.)
+  # - include:
+  #     file: db/changelog/changes/0090-seed-admin.yaml

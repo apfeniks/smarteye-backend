@@ -1,0 +1,5 @@
+conveyor:
+  # Смещение между весами BEFORE и AFTER (позиционная корреляция).
+  # По умолчанию 5, но можно переопределять переменной окружения CONVEYOR_OFFSET_BETWEEN_SCALES
+  # или в application*.yml. Этот файл импортируется из application.yml.
+  offset-between-scales: 5

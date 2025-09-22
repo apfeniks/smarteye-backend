@@ -1,59 +1,27 @@
-server:
-  port: 8080
-
 spring:
-  application:
-    name: smarteye-backend
+  profiles:
+    active: local
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/se_db
-    username: se_user
-    password: se_pass
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/smarteye}
+    username: ${SPRING_DATASOURCE_USERNAME:smarteye}
+    password: ${SPRING_DATASOURCE_PASSWORD:smarteye}
+
   jpa:
-    hibernate:
-      ddl-auto: none
-    open-in-view: false
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
-        jdbc:
-          time_zone: UTC
-  liquibase:
-    enabled: true
-    change-log: classpath:db/changelog/db.changelog-master.xml
 
-  kafka:
-    bootstrap-servers: localhost:9094
-    consumer:
-      group-id: smarteye-consumers
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      auto-offset-reset: earliest
-      properties:
-        spring.json.trusted.packages: "*"
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+logging:
+  level:
+    org.smarteye.backend: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "health,info,metrics,env,configprops"
-  endpoint:
-    health:
-      show-details: when_authorized
+# Для удобства локальной разработки можно ослабить CORS
+CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
 
-springdoc:
-  swagger-ui:
-    path: /swagger-ui
-  api-docs:
-    path: /v3/api-docs
-
-smarteye:
-  s3:
-    endpoint: http://localhost:9000
-    access-key: se_minio
-    secret-key: se_minio_pass
-    bucket: smarteye-pointclouds
-    region: us-east-1
-    path-style-access: true
+# Смещение между весами можно переопределить здесь
+conveyor:
+  offset-between-scales: ${CONVEYOR_OFFSET_BETWEEN_SCALES:5}

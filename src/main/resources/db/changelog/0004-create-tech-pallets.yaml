@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0004-01-create-tech-pallets
+      author: se
+      changes:
+        - createTable:
+            tableName: tech_pallets
+            remarks: Технологические поддоны (tech_pallets)
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_tech_pallets
+              - column:
+                  name: rfid_uid
+                  type: VARCHAR(64)
+                  constraints:
+                    unique: true
+                    uniqueConstraintName: ux_tech_pallets_rfid_uid
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: commissioned_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: decommissioned_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: previous_tech_pallet_id
+                  type: BIGINT
+              - column:
+                  name: note
+                  type: VARCHAR(1024)
+              - column:
+                  name: product_code
+                  type: VARCHAR(64)
+              - column:
+                  name: color_code
+                  type: VARCHAR(64)
+              - column:
+                  name: recipe_id
+                  type: BIGINT
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: tech_pallets
+            baseColumnNames: previous_tech_pallet_id
+            referencedTableName: tech_pallets
+            referencedColumnNames: id
+            constraintName: fk_tech_pallets_previous
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: tech_pallets
+            baseColumnNames: recipe_id
+            referencedTableName: recipes
+            referencedColumnNames: id
+            constraintName: fk_tech_pallets_recipe
+            onDelete: SET NULL
+        - createIndex:
+            indexName: ix_tech_pallets_status
+            tableName: tech_pallets
+            columns:
+              - column:
+                  name: status

@@ -1,0 +1,17 @@
+openapi: 3.0.3
+info:
+  title: SmartEye API
+  version: "1.0.0"
+paths:
+  /api/v1/tech-pallets:
+    get:
+      summary: List tech pallets
+      responses:
+        '200':
+          description: OK
+  /api/v1/measurements/start:
+    post:
+      summary: Start measurement
+      responses:
+        '200':
+          description: OK

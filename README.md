@@ -1,1 +1,9 @@
-ссылка на общее ТЗ проекта https://github.com/apfeniks/smarteye-backend/blob/main/docs/smart_eye_tz.md
+# SmartEye Backend
+
+Java 21 + Spring Boot 3. Полная реализация по ТЗ: tech_pallets, measurements, weights (BEFORE/AFTER, смещение), files (MinIO/S3), defects, operator actions, security (JWT), WebSocket, отчёты, Liquibase.
+
+## Быстрый старт
+
+### 1) Сборка
+```bash
+mvn -q -DskipTests package

@@ -1,0 +1,22 @@
+spring:
+  profiles:
+    active: prod
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    show-sql: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Смещение между весами (можно переопределять ENV-переменной)
+conveyor:
+  offset-between-scales: ${CONVEYOR_OFFSET_BETWEEN_SCALES:5}
+
+logging:
+  level:
+    org.smarteye.backend: INFO

@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0002-01-create-devices
+      author: se
+      changes:
+        - createTable:
+            tableName: devices
+            remarks: Устройства линии (сканер, весы, контроллер и т.п.)
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_devices
+              - column:
+                  name: code
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: ux_devices_code
+              - column:
+                  name: name
+                  type: VARCHAR(128)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: device_type
+                  type: VARCHAR(64)
+              - column:
+                  name: description
+                  type: VARCHAR(512)
+              - column:
+                  name: ip_address
+                  type: VARCHAR(64)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: ix_devices_active
+            tableName: devices
+            columns:
+              - column:
+                  name: active

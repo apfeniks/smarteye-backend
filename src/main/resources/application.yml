@@ -1,3 +1,76 @@
 spring:
-  profiles:
-    active: local
+  application:
+    name: smart-eye-backend
+
+  config:
+    import: optional:conveyor.yml  # подтягиваем offsetBetweenScales из отдельного файла, если есть
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/smarteye}
+    username: ${SPRING_DATASOURCE_USERNAME:smarteye}
+    password: ${SPRING_DATASOURCE_PASSWORD:smarteye}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate         # схему создаёт Liquibase
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yml
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# CORS для REST
+CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:*}
+CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:*}
+CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:true}
+
+# S3/MinIO
+smarteye:
+  s3:
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY_ID:minioadmin}
+    secret-key: ${S3_SECRET_ACCESS_KEY:minioadmin}
+    bucket: ${S3_BUCKET:smarteye-clouds}
+    path-style: ${S3_FORCE_PATH_STYLE:true}
+
+# Конвейер: смещение между весами (по умолчанию 5), настраивается и через conveyor.yml
+conveyor:
+  offset-between-scales: ${CONVEYOR_OFFSET_BETWEEN_SCALES:5}
+
+logging:
+  level:
+    org.smarteye.backend: INFO
+    org.hibernate.SQL: WARN
+    liquibase: INFO
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+  api-docs:
+    path: /v3/api-docs

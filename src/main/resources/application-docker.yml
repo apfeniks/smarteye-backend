@@ -1,0 +1,22 @@
+spring:
+  profiles:
+    active: docker
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/smarteye}
+    username: ${SPRING_DATASOURCE_USERNAME:smarteye}
+    password: ${SPRING_DATASOURCE_PASSWORD:smarteye}
+
+  jpa:
+    show-sql: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Смещение между весами (можно переопределить через ENV)
+conveyor:
+  offset-between-scales: ${CONVEYOR_OFFSET_BETWEEN_SCALES:5}
+
+logging:
+  level:
+    org.smarteye.backend: INFO

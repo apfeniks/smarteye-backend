@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0005-01-create-files
+      author: se
+      changes:
+        - createTable:
+            tableName: files
+            remarks: Ссылки на объекты в MinIO/S3/SMB
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_files
+              - column:
+                  name: object_key
+                  type: VARCHAR(512)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: ux_files_key
+              - column:
+                  name: format
+                  type: VARCHAR(32)
+              - column:
+                  name: storage
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: filename
+                  type: VARCHAR(256)
+              - column:
+                  name: content_type
+                  type: VARCHAR(128)
+              - column:
+                  name: size_bytes
+                  type: BIGINT
+              - column:
+                  name: checksum
+                  type: VARCHAR(128)
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: ix_files_storage
+            tableName: files
+            columns:
+              - column:
+                  name: storage

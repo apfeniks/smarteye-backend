@@ -1,74 +1,85 @@
-version: "3.9"
-
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: se-postgres
+    image: postgres:16
+    container_name: smarteye-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: se_user
-      POSTGRES_PASSWORD: se_pass
-      POSTGRES_DB: se_db
+      POSTGRES_DB: ${POSTGRES_DB:-smarteye}
+      POSTGRES_USER: ${POSTGRES_USER:-smarteye}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smarteye}
     ports:
       - "5432:5432"
     volumes:
-      - se_pg_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U se_user -d se_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.1
-    container_name: se-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.1
-    container_name: se-kafka
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"   # внутр. listener (контейнерная сеть)
-      - "9094:9094"   # внешний для хоста Windows
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smarteye} -d ${POSTGRES_DB:-smarteye}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   minio:
     image: minio/minio:latest
-    container_name: se-minio
-    command: server --console-address ":9001" /data
+    container_name: smarteye-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: se_minio
-      MINIO_ROOT_PASSWORD: se_minio_pass
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-smarteye}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-smarteye_secret}
     ports:
-      - "9000:9000"  # S3 API
-      - "9001:9001"  # Web-консоль
+      - "9000:9000" # S3 API
+      - "9001:9001" # Console
     volumes:
-      - se_minio_data:/data
+      - minio_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "mc ready local || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: smarteye-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${S3_ACCESS_KEY_ID:-smarteye} ${S3_SECRET_ACCESS_KEY:-smarteye_secret} &&
+      /usr/bin/mc mb -p local/${S3_BUCKET:-smarteye-clouds} || true &&
+      /usr/bin/mc anonymous set download local/${S3_BUCKET:-smarteye-clouds} || true &&
+      echo 'MinIO bucket initialized'
+      "
+    restart: "no"
+
+  backend:
+    build: .
+    container_name: smarteye-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/smarteye}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-smarteye}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-smarteye}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-smarteye-clouds}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-smarteye}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-smarteye_secret}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      CONVEYOR_OFFSET_BETWEEN_SCALES: ${CONVEYOR_OFFSET_BETWEEN_SCALES:-5}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
 volumes:
-  se_pg_data:
-  se_minio_data:
+  pgdata:
+  minio_data:

@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0007-01-create-weights
+      author: se
+      changes:
+        - createTable:
+            tableName: weights
+            remarks: Показания весов BEFORE/AFTER
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_weights
+              - column:
+                  name: measurement_id
+                  type: BIGINT
+              - column:
+                  name: phase
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value_kg
+                  type: NUMERIC(12,3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: device_id
+                  type: BIGINT
+              - column:
+                  name: taken_at
+                  type: TIMESTAMPTZ
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: weights
+            baseColumnNames: measurement_id
+            referencedTableName: measurements
+            referencedColumnNames: id
+            constraintName: fk_weights_measurement
+            onDelete: SET NULL
+        - addForeignKeyConstraint:
+            baseTableName: weights
+            baseColumnNames: device_id
+            referencedTableName: devices
+            referencedColumnNames: id
+            constraintName: fk_weights_device
+            onDelete: SET NULL
+        - createIndex:
+            indexName: ix_weights_phase
+            tableName: weights
+            columns:
+              - column:
+                  name: phase
+        - createIndex:
+            indexName: ix_weights_taken_at
+            tableName: weights
+            columns:
+              - column:
+                  name: taken_at
