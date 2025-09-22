@@ -37,8 +37,8 @@ public class MinioConfig {
     public S3Client s3Client(
             @Value("${s3.region:us-east-1}") String region,
             @Value("${s3.endpoint:}") String endpoint,
-            @Value("${s3.accessKey}") String accessKey,
-            @Value("${s3.secretKey}") String secretKey) {
+            @Value("${s3.access-key}") String accessKey,
+            @Value("${s3.secret-key}") String secretKey) {
 
         var creds = AwsBasicCredentials.create(accessKey, secretKey);
         var s3cfg = S3Configuration.builder().pathStyleAccessEnabled(true).build();

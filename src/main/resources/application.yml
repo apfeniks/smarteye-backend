@@ -50,14 +50,13 @@ CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:*}
 CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:true}
 
 # S3/MinIO
-smarteye:
-  s3:
-    endpoint: ${S3_ENDPOINT:http://localhost:9000}
-    region: ${S3_REGION:us-east-1}
-    access-key: ${S3_ACCESS_KEY_ID:minioadmin}
-    secret-key: ${S3_SECRET_ACCESS_KEY:minioadmin}
-    bucket: ${S3_BUCKET:smarteye-clouds}
-    path-style: ${S3_FORCE_PATH_STYLE:true}
+s3:
+  endpoint: ${S3_ENDPOINT:http://localhost:9000}
+  region: ${S3_REGION:us-east-1}
+  access-key: ${S3_ACCESS_KEY_ID:minioadmin}
+  secret-key: ${S3_SECRET_ACCESS_KEY:minioadmin}
+  bucket: ${S3_BUCKET:smarteye-clouds}
+  path-style: ${S3_FORCE_PATH_STYLE:true}
 
 # Конвейер: смещение между весами (по умолчанию 5), настраивается и через conveyor.yml
 conveyor:
